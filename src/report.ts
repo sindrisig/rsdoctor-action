@@ -176,8 +176,18 @@ function calculateDiff(current: number, baseline: number): { value: string; emoj
   }
 }
 
-export function generateBundleAnalysisMarkdown(current: BundleAnalysis, baseline?: BundleAnalysis): string {
-  let markdown = '';
+
+/**
+ * Generate markdown for a single project with project title
+ */
+export function generateProjectMarkdown(
+  projectName: string,
+  filePath: string,
+  current: BundleAnalysis,
+  baseline?: BundleAnalysis
+): string {
+  let markdown = `### 📁 ${projectName}\n\n`;
+  markdown += `**Path:** \`${filePath}\`\n\n`;
   
   if (!baseline) {
     markdown += '> ⚠️ **No baseline data found** - Unable to perform comparison analysis\n\n';
@@ -190,11 +200,16 @@ export function generateBundleAnalysisMarkdown(current: BundleAnalysis, baseline
   markdown += `| 🎨 CSS | ${formatBytes(current.cssSize)} | ${baseline ? formatBytes(baseline.cssSize) : '-'} | ${baseline ? calculateDiff(current.cssSize, baseline.cssSize).value : '-'} |\n`;
   markdown += `| 🌐 HTML | ${formatBytes(current.htmlSize)} | ${baseline ? formatBytes(baseline.htmlSize) : '-'} | ${baseline ? calculateDiff(current.htmlSize, baseline.htmlSize).value : '-'} |\n`;
   markdown += `| 📁 Other Assets | ${formatBytes(current.otherSize)} | ${baseline ? formatBytes(baseline.otherSize) : '-'} | ${baseline ? calculateDiff(current.otherSize, baseline.otherSize).value : '-'} |\n`;
+  markdown += '\n';
   
   return markdown;
 }
 
-export async function generateBundleAnalysisReport(current: BundleAnalysis, baseline?: BundleAnalysis): Promise<void> {
+export async function generateBundleAnalysisReport(
+  current: BundleAnalysis, 
+  baseline?: BundleAnalysis,
+  writeSummary: boolean = true
+): Promise<void> {
   if (!baseline) {
     await summary
       .addRaw('> ⚠️ **No baseline data found** - Unable to perform comparison analysis')
@@ -247,9 +262,12 @@ export async function generateBundleAnalysisReport(current: BundleAnalysis, base
     .addSeparator();
   
   await summary
-    .addSeparator()
+    .addSeparator();
   
-  await summary.write();
+  // Only write summary if explicitly requested (default true for backward compatibility)
+  if (writeSummary) {
+    await summary.write();
+  }
   
   console.log('✅ Bundle analysis report generated successfully');
 }

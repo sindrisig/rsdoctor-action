@@ -157,18 +157,24 @@ export function loadSizeData(filePath: string): SizeData | null {
 
 export function calculateDiff(current: number, baseline: number): { value: string; emoji: string } {
   if (!baseline || baseline === 0 || isNaN(baseline)) {
-    return { value: 'N/A', emoji: '❓' };
+    return { value: '0', emoji: '❓' };
   }
   
   if (isNaN(current)) {
-    return { value: 'N/A', emoji: '❓' };
+    return { value: '0', emoji: '❓' };
   }
   
   const diff = current - baseline;
+  
+  // If diff is 0, just return "0"
+  if (diff === 0) {
+    return { value: '0', emoji: '' };
+  }
+  
   const percent = (diff / baseline) * 100;
   
   if (Math.abs(percent) < 1) {
-    return { value: `${formatBytes(diff)} (${percent.toFixed(1)}%)`, emoji: '➡️' };
+    return { value: `${formatBytes(diff)} (${percent.toFixed(1)}%)`, emoji: ''};
   } else if (diff > 0) {
     return { value: `+${formatBytes(diff)} (+${percent.toFixed(1)}%)`, emoji: '📈' };
   } else {
@@ -256,31 +262,31 @@ export async function generateBundleAnalysisReport(
       { data: '📊 Total Size', header: false },
       { data: formatBytes(current.totalSize), header: false },
       { data: baseline ? formatBytes(baseline.totalSize) : formatBytes(current.totalSize), header: false },
-      { data: baseline ? calculateDiff(current.totalSize, baseline.totalSize).value : 'N/A', header: false }
+      { data: baseline ? calculateDiff(current.totalSize, baseline.totalSize).value : '0', header: false }
     ],
     [
       { data: '📄 JavaScript', header: false },
       { data: formatBytes(current.jsSize), header: false },
       { data: baseline ? formatBytes(baseline.jsSize) : formatBytes(current.jsSize), header: false },
-      { data: baseline ? calculateDiff(current.jsSize, baseline.jsSize).value : 'N/A', header: false }
+      { data: baseline ? calculateDiff(current.jsSize, baseline.jsSize).value : '0', header: false }
     ],
     [
       { data: '🎨 CSS', header: false },
       { data: formatBytes(current.cssSize), header: false },
       { data: baseline ? formatBytes(baseline.cssSize) : formatBytes(current.cssSize), header: false },
-      { data: baseline ? calculateDiff(current.cssSize, baseline.cssSize).value : 'N/A', header: false }
+      { data: baseline ? calculateDiff(current.cssSize, baseline.cssSize).value : '0', header: false }
     ],
     [
       { data: '🌐 HTML', header: false },
       { data: formatBytes(current.htmlSize), header: false },
       { data: baseline ? formatBytes(baseline.htmlSize) : formatBytes(current.htmlSize), header: false },
-      { data: baseline ? calculateDiff(current.htmlSize, baseline.htmlSize).value : 'N/A', header: false }
+      { data: baseline ? calculateDiff(current.htmlSize, baseline.htmlSize).value : '0', header: false }
     ],
     [
       { data: '📁 Other Assets', header: false },
       { data: formatBytes(current.otherSize), header: false },
       { data: baseline ? formatBytes(baseline.otherSize) : formatBytes(current.otherSize), header: false },
-      { data: baseline ? calculateDiff(current.otherSize, baseline.otherSize).value : 'N/A', header: false }
+      { data: baseline ? calculateDiff(current.otherSize, baseline.otherSize).value : '0', header: false }
     ]
   ];
   
@@ -310,7 +316,7 @@ export async function generateSizeReport(current: SizeData, baseline?: SizeData)
     [
       { data: '📊 Total Size', header: false },
       { data: formatBytes(current.totalSize), header: false },
-      { data: baseline ? formatBytes(baseline.totalSize) : 'N/A', header: false }
+      { data: baseline ? formatBytes(baseline.totalSize) : '0', header: false }
     ]
   ];
   

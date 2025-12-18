@@ -418,7 +418,27 @@ async function processSingleFile(
       // Generate summary (always visible)
       const reportsWithCurrent = projectReports.filter(r => r.current);
       if (reportsWithCurrent.length > 1) {
-        commentBody += `Found ${reportsWithCurrent.length} project(s) in monorepo.\n\n`;
+        // Count projects with changes
+        let projectsWithChanges = 0;
+        for (const report of reportsWithCurrent) {
+          if (!report.current) continue;
+          if (!report.baseline) {
+            projectsWithChanges++;
+            continue;
+          }
+          const currentSize = report.current.totalSize;
+          const baselineSize = report.baseline.totalSize;
+          if (baselineSize === 0 || isNaN(baselineSize)) continue;
+          const diff = currentSize - baselineSize;
+          if (diff !== 0) {
+            projectsWithChanges++;
+          }
+        }
+        
+        const totalProjects = reportsWithCurrent.length;
+        const projectWord = totalProjects === 1 ? 'project' : 'projects';
+        const changeWord = projectsWithChanges === 1 ? 'project' : 'projects';
+        commentBody += `Found ${totalProjects} ${projectWord} in monorepo, ${projectsWithChanges} ${changeWord} with changes.\n\n`;
       }
       
       // Generate summary table for quick overview

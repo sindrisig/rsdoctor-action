@@ -481,9 +481,7 @@ async function processSingleFile(
       // Generate detailed reports only for projects with changes
       if (reportsWithChanges.length > 0) {
         // Only add collapse wrapper if there are multiple reports with changes
-        if (reportsWithChanges.length > 1) {
           commentBody += '<details>\n<summary><b>📋 Detailed Reports</b> (Click to expand)</summary>\n\n';
-        }
         
         for (const report of reportsWithChanges) {
           commentBody += generateProjectMarkdown(report.projectName, report.filePath, report.current!, report.baseline || undefined, report.baselineCommitHash, report.baselinePRs);

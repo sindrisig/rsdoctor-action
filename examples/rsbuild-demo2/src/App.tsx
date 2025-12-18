@@ -26,6 +26,10 @@ const App = () => {
           <p>Rsbuild provides lightning-fast build times with modern tooling.</p>
         </div>
         <div className="feature-card">
+          <h3>Fast Build</h3>
+          <p>Rsbuild provides lightning-fast build times with modern tooling.</p>
+        </div>
+        <div className="feature-card">
           <h3>TypeScript Support</h3>
           <p>Built-in TypeScript support with excellent developer experience.</p>
         </div>

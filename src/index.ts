@@ -461,6 +461,7 @@ async function processSingleFile(
       }
       
       // Helper function to check if a report has significant changes
+
       const hasSignificantChanges = (report: ProjectReport): boolean => {
         if (!report.current) return false;
         if (!report.baseline) return true; // No baseline means we can't compare, show it
@@ -468,8 +469,8 @@ async function processSingleFile(
         const baselineSize = report.baseline.totalSize;
         if (baselineSize === 0 || isNaN(baselineSize)) return false;
         const diff = currentSize - baselineSize;
-        const percent = Math.abs((diff / baselineSize) * 100);
-        return percent >= 1;
+        // Show detailed report if there's any change (not zero)
+        return diff !== 0;
       };
       
       // Filter reports with changes

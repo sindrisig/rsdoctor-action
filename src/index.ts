@@ -418,12 +418,53 @@ async function processSingleFile(
       // Generate summary (always visible)
       const reportsWithCurrent = projectReports.filter(r => r.current);
       if (reportsWithCurrent.length > 1) {
-        commentBody += `Found ${reportsWithCurrent.length} project(s) in monorepo.\n\n`;
+        // Count projects with changes
+        let projectsWithChanges = 0;
+        for (const report of reportsWithCurrent) {
+          if (!report.current) continue;
+          if (!report.baseline) {
+            projectsWithChanges++;
+            continue;
+          }
+          const currentSize = report.current.totalSize;
+          const baselineSize = report.baseline.totalSize;
+          if (baselineSize === 0 || isNaN(baselineSize)) continue;
+          const diff = currentSize - baselineSize;
+          if (diff !== 0) {
+            projectsWithChanges++;
+          }
+        }
+        
+        const totalProjects = reportsWithCurrent.length;
+        const projectWord = totalProjects === 1 ? 'project' : 'projects';
+        const changeWord = projectsWithChanges === 1 ? 'project' : 'projects';
+        commentBody += `Found ${totalProjects} ${projectWord} in monorepo, ${projectsWithChanges} ${changeWord} with changes.\n\n`;
       }
       
       // Generate summary table for quick overview
       if (reportsWithCurrent.length > 0) {
-        commentBody += '<details>\n<summary><b>📊 Quick Summary</b> (Click to expand)</summary>\n\n';
+        // Check if any project has changes (any non-zero change)
+        let hasChanges = false;
+        for (const report of reportsWithCurrent) {
+          if (!report.current) continue;
+          if (!report.baseline) {
+            hasChanges = true; // No baseline means we can't compare, show it
+            break;
+          }
+          const currentSize = report.current.totalSize;
+          const baselineSize = report.baseline.totalSize;
+          if (baselineSize === 0 || isNaN(baselineSize)) continue;
+          const diff = currentSize - baselineSize;
+          // Show if there's any non-zero change
+          if (diff !== 0) {
+            hasChanges = true;
+            break;
+          }
+        }
+        
+        // Use 'open' attribute if there are changes, otherwise keep it collapsed
+        const detailsTag = hasChanges ? '<details open>\n' : '<details>\n';
+        commentBody += `${detailsTag}<summary><b>📊 Quick Summary</b></summary>\n\n`;
         commentBody += '| Project | Total Size | Change |\n';
         commentBody += '|---------|------------|--------|\n';
         
@@ -439,25 +480,43 @@ async function processSingleFile(
         commentBody += '\n</details>\n\n';
       }
       
-      // Generate detailed reports (collapsed by default)
-      if (reportsWithCurrent.length > 1) {
-        commentBody += '<details>\n<summary><b>📋 Detailed Reports</b> (Click to expand)</summary>\n\n';
-      }
+      // Helper function to check if a report has significant changes
+
+      const hasSignificantChanges = (report: ProjectReport): boolean => {
+        if (!report.current) return false;
+        if (!report.baseline) return true; // No baseline means we can't compare, show it
+        const currentSize = report.current.totalSize;
+        const baselineSize = report.baseline.totalSize;
+        if (baselineSize === 0 || isNaN(baselineSize)) return false;
+        const diff = currentSize - baselineSize;
+        // Show detailed report if there's any change (not zero)
+        return diff !== 0;
+      };
       
-      for (const report of projectReports) {
-        if (!report.current) continue;
+      // Filter reports with changes
+      const reportsWithChanges = projectReports.filter(report => {
+        if (!report.current) return false;
+        return hasSignificantChanges(report);
+      });
+      
+      // Generate detailed reports only for projects with changes
+      if (reportsWithChanges.length > 0) {
+        // Only add collapse wrapper if there are multiple reports with changes
+          commentBody += '<details>\n<summary><b>📋 Detailed Reports</b> (Click to expand)</summary>\n\n';
         
-        commentBody += generateProjectMarkdown(report.projectName, report.filePath, report.current, report.baseline || undefined, report.baselineCommitHash, report.baselinePRs);
-        
-        // Add diff HTML link if available
-        if (report.diffHtmlArtifactId) {
-          const artifactDownloadLink = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}/artifacts/${report.diffHtmlArtifactId}`;
-          commentBody += `\n📦 **Download Diff Report**: [${report.projectName} Bundle Diff](${artifactDownloadLink})\n\n`;
+        for (const report of reportsWithChanges) {
+          commentBody += generateProjectMarkdown(report.projectName, report.filePath, report.current!, report.baseline || undefined, report.baselineCommitHash, report.baselinePRs);
+          
+          // Add diff HTML link if available
+          if (report.diffHtmlArtifactId) {
+            const artifactDownloadLink = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}/artifacts/${report.diffHtmlArtifactId}`;
+            commentBody += `\n📦 **Download Diff Report**: [${report.projectName} Bundle Diff](${artifactDownloadLink})\n\n`;
+          }
         }
-      }
-      
-      if (reportsWithCurrent.length > 1) {
-        commentBody += '</details>\n\n';
+        
+        if (reportsWithChanges.length > 1) {
+          commentBody += '</details>\n\n';
+        }
       }
       
       commentBody += '*Generated by [Rsdoctor GitHub Action](https://rsdoctor.rs/guide/start/action)*';

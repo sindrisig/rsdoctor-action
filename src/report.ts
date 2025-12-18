@@ -174,7 +174,12 @@ export function calculateDiff(current: number, baseline: number): { value: strin
   const percent = (diff / baseline) * 100;
   
   if (Math.abs(percent) < 1) {
-    return { value: `${formatBytes(diff)} (${percent.toFixed(1)}%)`, emoji: ''};
+    // For small changes, still show + sign if it's an increase
+    if (diff > 0) {
+      return { value: `+${formatBytes(diff)} (${percent.toFixed(1)}%)`, emoji: ''};
+    } else {
+      return { value: `${formatBytes(diff)} (${percent.toFixed(1)}%)`, emoji: ''};
+    }
   } else if (diff > 0) {
     return { value: `+${formatBytes(diff)} (+${percent.toFixed(1)}%)`, emoji: '📈' };
   } else {

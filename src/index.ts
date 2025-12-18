@@ -423,7 +423,7 @@ async function processSingleFile(
       
       // Generate summary table for quick overview
       if (reportsWithCurrent.length > 0) {
-        // Check if any project has significant changes (> 1% or no baseline)
+        // Check if any project has changes (any non-zero change)
         let hasChanges = false;
         for (const report of reportsWithCurrent) {
           if (!report.current) continue;
@@ -435,8 +435,8 @@ async function processSingleFile(
           const baselineSize = report.baseline.totalSize;
           if (baselineSize === 0 || isNaN(baselineSize)) continue;
           const diff = currentSize - baselineSize;
-          const percent = Math.abs((diff / baselineSize) * 100);
-          if (percent >= 1) {
+          // Show if there's any non-zero change
+          if (diff !== 0) {
             hasChanges = true;
             break;
           }

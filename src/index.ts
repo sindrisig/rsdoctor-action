@@ -438,6 +438,9 @@ async function processSingleFile(
       
       let commentBody = '## Rsdoctor Bundle Diff Analysis\n\n';
       
+      // Test PR link to verify auto-linking behavior (using plain text to avoid auto-linking)
+      commentBody += '> 🧪 **Test PR Link:** #123: Test PR Title - This is a test PR link to verify GitHub auto-linking behavior\n\n';
+      
       // Add fallback notice if applicable (check first report)
       const firstReport = projectReports.find(r => r.current);
       if (firstReport?.baselineUsedFallback && firstReport?.baselineLatestCommitHash) {

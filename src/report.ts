@@ -208,10 +208,10 @@ export function generateProjectMarkdown(
     const commitLink = `${process.env.GITHUB_SERVER_URL || 'https://github.com'}/${process.env.GITHUB_REPOSITORY}/commit/${baselineCommitHash}`;
     let baselineInfo = `> 📌 **Baseline Commit:** [\`${baselineCommitHash}\`](${commitLink})`;
     
-    // Add PR links if available
+    // Add PR info if available (use plain text to avoid auto-linking)
     if (baselinePRs && baselinePRs.length > 0) {
-      const prLinks = baselinePRs.map(pr => `[#${pr.number}](${pr.url})`).join(', ');
-      baselineInfo += ` | **PR:** ${prLinks}`;
+      const prInfo = baselinePRs.map(pr => `#${pr.number}: ${pr.title}`).join(', ');
+      baselineInfo += ` | **PR:** ${prInfo}`;
     }
     
     markdown += `${baselineInfo}\n\n`;

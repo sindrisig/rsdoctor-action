@@ -509,31 +509,14 @@ async function processSingleFile(
         commentBody += '\n</details>\n\n';
       }
       
-      // Helper function to check if a report has significant changes
-
-      const hasSignificantChanges = (report: ProjectReport): boolean => {
-        if (!report.current) return false;
-        if (!report.baseline) return true; // No baseline means we can't compare, show it
-        const currentSize = report.current.totalSize;
-        const baselineSize = report.baseline.totalSize;
-        if (baselineSize === 0 || isNaN(baselineSize)) return false;
-        const diff = currentSize - baselineSize;
-        // Show detailed report if there's any change (not zero)
-        return diff !== 0;
-      };
-      
-      // Filter reports with changes
-      const reportsWithChanges = projectReports.filter(report => {
-        if (!report.current) return false;
-        return hasSignificantChanges(report);
-      });
-      
-      // Generate detailed reports only for projects with changes
-      if (reportsWithChanges.length > 0) {
-        // Only add collapse wrapper if there are multiple reports with changes
+      // Generate detailed reports for all projects (regardless of changes)
+      if (reportsWithCurrent.length > 0) {
+        // Only add collapse wrapper if there are multiple reports
+        if (reportsWithCurrent.length > 1) {
           commentBody += '<details>\n<summary><b>📋 Detailed Reports</b> (Click to expand)</summary>\n\n';
+        }
         
-        for (const report of reportsWithChanges) {
+        for (const report of reportsWithCurrent) {
           commentBody += generateProjectMarkdown(report.projectName, report.filePath, report.current!, report.baseline || undefined, report.baselineCommitHash, report.baselinePRs);
           
           // Add diff HTML link if available
@@ -543,7 +526,7 @@ async function processSingleFile(
           }
         }
         
-        if (reportsWithChanges.length > 1) {
+        if (reportsWithCurrent.length > 1) {
           commentBody += '</details>\n\n';
         }
       }

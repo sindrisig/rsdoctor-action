@@ -20,6 +20,10 @@ inputs:
     required: false
     default: ''
     type: string
+  ai_model:
+    description: 'AI model to use for degradation analysis (e.g. claude-3-5-haiku-latest, gpt-4o-mini). Provider is auto-detected from the model name prefix.'
+    required: false
+    default: 'claude-3-5-haiku-latest'
 
 runs:
   using: 'node20'

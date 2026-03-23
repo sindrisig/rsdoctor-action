@@ -3,6 +3,7 @@ import { uploadArtifact, hashPath } from './upload';
 import { downloadArtifactByCommitHash } from './download';
 import { GitHubService } from './github';
 import { loadSizeData, generateSizeReport, parseRsdoctorData, generateBundleAnalysisReport, BundleAnalysis, generateProjectMarkdown, formatBytes, calculateDiff } from './report';
+import { analyzeWithAI, AIAnalysisResult } from './ai-analysis';
 import path from 'path';
 import * as fs from 'fs';
 import { execFile } from 'child_process';
@@ -99,6 +100,7 @@ interface ProjectReport {
   diffHtmlArtifactId?: number;
   baselineUsedFallback?: boolean;
   baselineLatestCommitHash?: string;
+  aiAnalysis?: AIAnalysisResult | null;
 }
 
 function extractProjectName(filePath: string): string {
@@ -139,6 +141,8 @@ async function processSingleFile(
   targetCommitHash: string | null,
   baselineUsedFallback?: boolean,
   baselineLatestCommitHash?: string,
+  aiToken?: string,
+  aiModel?: string,
 ): Promise<ProjectReport> {
   const fileName = path.basename(fullPath);
   const relativePath = path.relative(process.cwd(), fullPath);
@@ -259,11 +263,49 @@ async function processSingleFile(
           console.warn(`⚠️ Failed to upload diff html for ${projectName}: ${e}`);
         }
       }
+
+      // Generate JSON diff for AI analysis (requires @rsdoctor/cli >= 1.5.6-canary.0)
+      if (aiToken) {
+        try {
+          const diffJsonPath = path.join(tempOutDir, `rsdoctor-diff-${projectName}.json`);
+          const defaultDiffJsonPath = path.join(tempOutDir, 'rsdoctor-diff.json');
+
+          try {
+            const cliEntry = require.resolve('@rsdoctor/cli', { paths: [process.cwd()] });
+            const binCliEntry = path.join(path.dirname(path.dirname(cliEntry)), 'bin', 'rsdoctor');
+            runRsdoctorViaNode(binCliEntry, [
+              'bundle-diff',
+              '--json',
+              `--baseline=${baselineJsonPath}`,
+              `--current=${fullPath}`,
+            ]);
+          } catch (e) {
+            console.log(`⚠️ rsdoctor CLI (json) not found in node_modules: ${e}`);
+            try {
+              const shellCmd = `npx @rsdoctor/cli bundle-diff --json --baseline="${baselineJsonPath}" --current="${fullPath}"`;
+              console.log(`🛠️ Running rsdoctor --json via npx: ${shellCmd}`);
+              await execFileAsync('sh', ['-c', shellCmd], { cwd: tempOutDir });
+            } catch (npxError) {
+              console.log(`⚠️ npx approach (json) also failed: ${npxError}`);
+            }
+          }
+
+          // Rename default output to project-specific name to avoid collisions in monorepo
+          if (fs.existsSync(defaultDiffJsonPath) && !fs.existsSync(diffJsonPath)) {
+            await fs.promises.rename(defaultDiffJsonPath, diffJsonPath);
+          }
+
+          const resolvedJsonPath = fs.existsSync(diffJsonPath) ? diffJsonPath : defaultDiffJsonPath;
+          report.aiAnalysis = await analyzeWithAI(resolvedJsonPath, aiToken, aiModel);
+        } catch (e) {
+          console.warn(`⚠️ Failed to generate JSON diff for AI analysis: ${e}`);
+        }
+      }
     } catch (e) {
       console.warn(`⚠️ rsdoctor bundle-diff failed for ${projectName}: ${e}`);
     }
   }
-  
+
   return report;
 }
 
@@ -293,7 +335,13 @@ async function processSingleFile(
     
     const currentCommitHash = githubService.getCurrentCommitHash();
     console.log(`Current commit hash: ${currentCommitHash}`);
-    
+
+    const aiToken = process.env.AI_TOKEN || '';
+    const aiModel = getInput('ai_model') || 'claude-3-5-haiku-latest';
+    if (aiToken) {
+      console.log(`🤖 AI analysis enabled (model: ${aiModel})`);
+    }
+
     let targetCommitHash: string | null = null;
     let baselineUsedFallback = false;
     let baselineLatestCommitHash: string | undefined = undefined;
@@ -385,7 +433,7 @@ async function processSingleFile(
       }
       
       for (const fullPath of matchedFiles) {
-        const report = await processSingleFile(fullPath, currentCommitHash, targetCommitHash, baselineUsedFallback, baselineLatestCommitHash);
+        const report = await processSingleFile(fullPath, currentCommitHash, targetCommitHash, baselineUsedFallback, baselineLatestCommitHash, aiToken, aiModel);
         projectReports.push(report);
         
         // For workflow_dispatch, also upload artifacts
@@ -548,6 +596,21 @@ async function processSingleFile(
         }
       }
       
+      // Append AI degradation analysis if available (one section per project that has it)
+      const reportsWithAI = projectReports.filter(r => r.aiAnalysis);
+      if (reportsWithAI.length > 0) {
+        commentBody += '<details>\n<summary><b>🤖 AI Degradation Analysis</b> (Click to expand)</summary>\n\n';
+        for (const report of reportsWithAI) {
+          if (!report.aiAnalysis) continue;
+          if (reportsWithAI.length > 1) {
+            commentBody += `#### 📁 ${report.projectName}\n\n`;
+          }
+          commentBody += report.aiAnalysis.analysis + '\n\n';
+          commentBody += `<sub>Analysis by ${report.aiAnalysis.model}</sub>\n\n`;
+        }
+        commentBody += '</details>\n\n';
+      }
+
       commentBody += '*Generated by [Rsdoctor GitHub Action](https://rsdoctor.rs/guide/start/action)*';
       
       try {

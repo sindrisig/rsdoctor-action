@@ -350,7 +350,7 @@ async function processSingleFile(
     console.log(`Current commit hash: ${currentCommitHash}`);
 
     const aiToken = process.env.AI_TOKEN || '';
-    const aiModel = getInput('ai_model') || 'claude-3-5-haiku-latest';
+    const aiModel = getInput('ai_model') || 'qwen3.5-plus';
     const aiBaseUrl = getInput('ai_base_url') || undefined;
     if (aiToken) {
       console.log(`🤖 AI analysis enabled (model: ${aiModel})`);

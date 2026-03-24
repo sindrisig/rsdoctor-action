@@ -6,9 +6,13 @@ export interface AIAnalysisResult {
   model: string;
 }
 
-function detectProvider(model: string): 'anthropic' | 'openai' {
-  return model.toLowerCase().startsWith('claude') ? 'anthropic' : 'openai';
+function detectProvider(model: string): 'anthropic' | 'openai' | 'qwen3.5-plus' {
+  if (model.toLowerCase().startsWith('claude')) return 'anthropic';
+  if (model.toLowerCase().startsWith('qwen')) return 'qwen3.5-plus';
+  return 'openai';
 }
+
+const QWEN_DEFAULT_BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
 
 async function callAnthropicAPI(prompt: string, token: string, model: string): Promise<string> {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -34,8 +38,8 @@ async function callAnthropicAPI(prompt: string, token: string, model: string): P
   return data.content[0].text as string;
 }
 
-async function callOpenAIAPI(prompt: string, token: string, model: string): Promise<string> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+async function callOpenAIAPI(prompt: string, token: string, model: string, baseUrl = 'https://api.openai.com/v1'): Promise<string> {
+  const response = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -92,13 +96,15 @@ Respond in concise GitHub-flavored Markdown suitable for a PR comment. If there 
  * Run AI degradation analysis on a bundle-diff JSON file.
  *
  * @param diffJsonPath  Path to the JSON file produced by `rsdoctor bundle-diff --json`
- * @param token         AI API key (Anthropic or OpenAI)
+ * @param token         AI API key (Anthropic, OpenAI, or Qwen)
  * @param model         Model name — auto-detects provider from prefix (default: claude-3-5-haiku-latest)
+ * @param baseUrl       Optional base URL override (required for Qwen region selection)
  */
 export async function analyzeWithAI(
   diffJsonPath: string,
   token: string,
-  model = 'claude-3-5-haiku-latest',
+  model = 'qwen',
+  baseUrl?: string,
 ): Promise<AIAnalysisResult | null> {
   if (!token) {
     console.log('ℹ️  No AI token provided, skipping AI analysis');
@@ -117,10 +123,11 @@ export async function analyzeWithAI(
 
     console.log(`🤖 Running AI analysis with ${provider} (${model})...`);
 
+    const resolvedBaseUrl = baseUrl || (provider === 'qwen3.5-plus' ? QWEN_DEFAULT_BASE_URL : undefined);
     const analysis =
       provider === 'anthropic'
         ? await callAnthropicAPI(prompt, token, model)
-        : await callOpenAIAPI(prompt, token, model);
+        : await callOpenAIAPI(prompt, token, model, resolvedBaseUrl);
 
     console.log('✅ AI analysis completed');
     return { analysis, provider, model };

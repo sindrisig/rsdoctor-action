@@ -143,6 +143,7 @@ async function processSingleFile(
   baselineLatestCommitHash?: string,
   aiToken?: string,
   aiModel?: string,
+  aiBaseUrl?: string,
 ): Promise<ProjectReport> {
   const fileName = path.basename(fullPath);
   const relativePath = path.relative(process.cwd(), fullPath);
@@ -296,7 +297,7 @@ async function processSingleFile(
           }
 
           const resolvedJsonPath = fs.existsSync(diffJsonPath) ? diffJsonPath : defaultDiffJsonPath;
-          report.aiAnalysis = await analyzeWithAI(resolvedJsonPath, aiToken, aiModel);
+          report.aiAnalysis = await analyzeWithAI(resolvedJsonPath, aiToken, aiModel, aiBaseUrl);
         } catch (e) {
           console.warn(`⚠️ Failed to generate JSON diff for AI analysis: ${e}`);
         }
@@ -312,7 +313,7 @@ async function processSingleFile(
     try {
       const fallbackDiffPath = path.resolve(__dirname, '..', 'examples', 'rsdoctor-diff.json');
       console.log(`ℹ️  No baseline found, falling back to example diff data for AI analysis`);
-      report.aiAnalysis = await analyzeWithAI(fallbackDiffPath, aiToken, aiModel);
+      report.aiAnalysis = await analyzeWithAI(fallbackDiffPath, aiToken, aiModel, aiBaseUrl);
     } catch (e) {
       console.warn(`⚠️ Fallback AI analysis failed: ${e}`);
     }
@@ -350,6 +351,7 @@ async function processSingleFile(
 
     const aiToken = process.env.AI_TOKEN || '';
     const aiModel = getInput('ai_model') || 'claude-3-5-haiku-latest';
+    const aiBaseUrl = getInput('ai_base_url') || undefined;
     if (aiToken) {
       console.log(`🤖 AI analysis enabled (model: ${aiModel})`);
     }
@@ -445,7 +447,7 @@ async function processSingleFile(
       }
       
       for (const fullPath of matchedFiles) {
-        const report = await processSingleFile(fullPath, currentCommitHash, targetCommitHash, baselineUsedFallback, baselineLatestCommitHash, aiToken, aiModel);
+        const report = await processSingleFile(fullPath, currentCommitHash, targetCommitHash, baselineUsedFallback, baselineLatestCommitHash, aiToken, aiModel, aiBaseUrl);
         projectReports.push(report);
         
         // For workflow_dispatch, also upload artifacts

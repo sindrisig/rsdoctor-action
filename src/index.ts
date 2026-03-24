@@ -605,9 +605,7 @@ async function processSingleFile(
           }
         }
         
-        if (reportsWithChanges.length > 1) {
-          commentBody += '</details>\n\n';
-        }
+        commentBody += '</details>\n\n';
       }
       
       // Append AI degradation analysis if available (one section per project that has it)

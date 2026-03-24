@@ -308,6 +308,7 @@ async function processSingleFile(
 
   // Fallback: if AI token is set but no baseline was found, use example diff for AI analysis
   if (aiToken && !report.aiAnalysis) {
+    console.log('Fallback:::::::::::::::::::')
     try {
       const fallbackDiffPath = path.resolve(__dirname, '..', 'examples', 'rsdoctor-diff.json');
       console.log(`ℹ️  No baseline found, falling back to example diff data for AI analysis`);

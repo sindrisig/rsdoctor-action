@@ -349,7 +349,6 @@ async function processSingleFile(
     console.log(`Current commit hash: ${currentCommitHash}`);
 
     const aiToken = process.env.AI_TOKEN || '';
-    console.log('aiToken::::::::::', aiToken);
     const aiModel = getInput('ai_model') || 'claude-3-5-haiku-latest';
     if (aiToken) {
       console.log(`🤖 AI analysis enabled (model: ${aiModel})`);

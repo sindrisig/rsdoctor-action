@@ -20,6 +20,10 @@ inputs:
     required: false
     default: ''
     type: string
+  baseline_search_depth:
+    description: 'How many parent commits to walk back when looking for a baseline with uploaded artifacts. Increase this if the action only runs on path-filtered pushes and may have gaps on the target branch.'
+    required: false
+    default: '50'
 
 runs:
   using: 'node20'

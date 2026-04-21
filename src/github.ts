@@ -64,6 +64,15 @@ export class GitHubService {
     return dispatchTargetBranch || targetBranch;
   }
 
+  getBaselineSearchDepth(): number {
+    const raw = getInput('baseline_search_depth');
+    const parsed = parseInt(raw, 10);
+    if (!Number.isFinite(parsed) || parsed < 1) {
+      return 50;
+    }
+    return parsed;
+  }
+
   async listWorkflowRuns(params: WorkflowRunParams) {
     const { owner, repo } = this.repository;
     
@@ -255,7 +264,8 @@ export class GitHubService {
       
       let currentCommit = latestCommitHash;
       let checkedCommits: string[] = [currentCommit];
-      const maxDepth = 5;
+      const maxDepth = this.getBaselineSearchDepth();
+      console.log(`🔎 Baseline search depth: ${maxDepth}`);
       
       for (let depth = 0; depth < maxDepth; depth++) {
         const parentCommit = await this.getParentCommit(currentCommit);
